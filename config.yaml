@@ -1,0 +1,66 @@
+original_query: |
+  PROFILE 
+  MATCH (n:dbt_table_or_consumption_view{name: $name})
+  // Get roots
+  CALL {
+      WITH n
+      MATCH p=()-[*0..]->(n)
+      WITH nodes(p) AS nodes, 
+          relationships(p) AS rels
+      WITH { node: head(nodes) , rel: head(rels) } AS root
+      WITH COLLECT(DISTINCT root) AS roots
+      RETURN roots 
+  }
+  RETURN n, roots
+
+# Full example returning everything, same as above but with Quantified Path Patterns
+qpp_query: |
+  PROFILE
+  MATCH (n:dbt_table_or_consumption_view)
+    WHERE n.name = $name
+
+  //Get roots
+  CALL {
+    WITH n
+    MATCH (m)-[r]->*(n)
+    WITH * WHERE isEmpty(r)=false
+    WITH n, {node: m, rels: r} AS root
+    WITH n, COLLECT(root) AS roots
+    RETURN {start: n, roots: roots} AS roots
+  }
+  WITH n, roots
+
+  //Get Leaves
+  CALL{
+    WITH n
+    MATCH (n)-[r]->*(m)
+    WITH n, r, m WHERE isEmpty(r) = false
+    WITH n, {leaf: m, rels: r} AS leaf
+    WITH n, COLLECT(leaf) AS leaves
+    RETURN {start: n, leaves: leaves} AS leaves
+  }  
+  RETURN roots, leaves
+
+# Example just returning just the root and leaf nodes
+qpp_query_only_nodes: |
+  PROFILE
+  MATCH (n:dbt_table_or_consumption_view)
+    WHERE n.name = $name
+  //Get roots
+  CALL {
+    WITH n
+    MATCH (m)-[r]->*(n)
+    WITH * WHERE isEmpty(r)=false
+    RETURN COLLECT(DISTINCT m) AS roots
+  }
+  WITH n, roots
+
+  //Get Leaves
+  CALL{
+    WITH n
+    MATCH (n)-[r]->*(m)
+    WITH n, r, m WHERE isEmpty(r) = false
+    RETURN COLLECT(DISTINCT m) AS leaves
+  }  
+  RETURN n, roots, leaves
+
