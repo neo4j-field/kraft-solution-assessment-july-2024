@@ -112,9 +112,9 @@ CALL {
     YIELD path AS p
     /*WITH nodes(p) AS nodes, 
          relationships(p) AS rels
-    WITH { node: head(nodes) , rel: head(rels) } AS root
-    WITH COLLECT(DISTINCT root) AS roots
-    RETURN roots*/
+    WITH { node: head(nodes) , rel: head(rels) } AS leaves
+    WITH COLLECT(DISTINCT root) AS leaves
+    RETURN leaves*/
     RETURN count(p) AS totalLeafPaths
 }
 RETURN n.name AS sourceName, totalRootPaths, totalLeafPaths
