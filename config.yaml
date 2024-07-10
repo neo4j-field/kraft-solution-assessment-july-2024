@@ -1,7 +1,7 @@
 original_query: |
   PROFILE 
-  MATCH (n:{node_type})
-    WHERE n.name ='{node_name}'
+  MATCH (n:dbt_table_or_consumption_view)
+    WHERE n.name = $name
   WITH n
   MATCH p=()-[*0..]->(n)
   WITH n, nodes(p) AS nodes, relationships(p) AS rels
@@ -65,4 +65,18 @@ qpp_query_only_nodes: |
     RETURN COLLECT(DISTINCT m) AS leaves
   }  
   RETURN n, roots, leaves
+
+# Example just streaming records in QPP format
+qpp_query_record_format: |
+  PROFILE
+  MATCH (n:dbt_table_or_consumption_view)
+    WHERE n.name = $name
+  //Get Leaves
+  CALL{
+    WITH n
+    MATCH (n)-[r]->*(m)
+    WITH * WHERE isEmpty(r) = false
+    RETURN r, m
+  }  
+  RETURN n,r,m
 
