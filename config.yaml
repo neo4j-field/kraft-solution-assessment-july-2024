@@ -1,17 +1,19 @@
 original_query: |
   PROFILE 
-  MATCH (n:dbt_table_or_consumption_view{name: $name})
-  // Get roots
-  CALL {
-      WITH n
-      MATCH p=()-[*0..]->(n)
-      WITH nodes(p) AS nodes, 
-          relationships(p) AS rels
-      WITH { node: head(nodes) , rel: head(rels) } AS root
-      WITH COLLECT(DISTINCT root) AS roots
-      RETURN roots 
-  }
-  RETURN n, roots
+  MATCH (n:{node_type})
+    WHERE n.name ='{node_name}'
+  WITH n
+  MATCH p=()-[*0..]->(n)
+  WITH n, nodes(p) AS nodes, relationships(p) AS rels
+  WITH n, { node: head(nodes) , rel: head(rels) } AS root
+  WITH n, COLLECT(DISTINCT root) AS roots
+  MATCH p=(n)-[*0..]->()
+  WITH n, roots, nodes(p) AS nodes, relationships(p) AS rels
+  WITH n, roots, { node: tail(nodes) , rel: CASE WHEN size(rels) > 1
+  THEN tail(rels) ELSE head(rels) END } AS leaf
+  WITH {node: n, rel: []} as n1, roots, COLLECT(DISTINCT leaf)
+  AS leaves
+  RETURN n1 + roots + leaves as data
 
 # Full example returning everything, same as above but with Quantified Path Patterns
 qpp_query: |
