@@ -15,6 +15,43 @@ original_query: |
   AS leaves
   RETURN n1 + roots + leaves as data
 
+# Spanning tree example
+apoc_spanning_tree: |
+  PROFILE
+  MATCH (n:dbt_table_or_consumption_view)
+     WHERE n.name = $name
+  CALL apoc.path.spanningTree(n,{
+      relationshipFilter: ">"
+
+  }) yield path
+  RETURN path
+
+  PROFILE
+  MATCH (n:dbt_table_or_consumption_view)
+    WHERE n.name = $name
+
+  //Get roots
+  CALL {
+    WITH n
+    MATCH (m)-[r]->*(n)
+    WITH * WHERE isEmpty(r)=false
+    WITH n, {node: m, rels: r} AS root
+    WITH n, COLLECT(root) AS roots
+    RETURN {start: n, roots: roots} AS roots
+  }
+  WITH n, roots
+
+  //Get Leaves
+  CALL{
+    WITH n
+    MATCH (n)-[r]->*(m)
+    WITH n, r, m WHERE isEmpty(r) = false
+    WITH n, {leaf: m, rels: r} AS leaf
+    WITH n, COLLECT(leaf) AS leaves
+    RETURN {start: n, leaves: leaves} AS leaves
+  }  
+  RETURN roots, leaves
+
 # Full example returning everything, same as above but with Quantified Path Patterns
 qpp_query: |
   PROFILE
