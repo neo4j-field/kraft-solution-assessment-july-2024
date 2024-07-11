@@ -36,24 +36,15 @@ qpp_with_spanning_tree: |
     WITH n
     CALL apoc.path.spanningTree(n,{
       relationshipFilter: ">"
-  }) yield path
-    WITH n, {leaf: head(nodes(path)), rels: head(relationships(path))} AS leaf
+    }) yield path
+    WITH n, tail(nodes(path)) AS nodes, relationships(path) AS rels
+    WITH n, {leaf: nodes, rels: rels} AS leaf
     WITH n, COLLECT(leaf) AS leaves
     RETURN {start: n, leaves: leaves} AS leaves
   }  
   RETURN roots, leaves
 
-# Spanning tree example
-apoc_spanning_tree: |
-  PROFILE
-  MATCH (n:dbt_table_or_consumption_view)
-     WHERE n.name = $name
-  CALL apoc.path.spanningTree(n,{
-      relationshipFilter: ">"
-
-  }) yield path
-  RETURN path
-
+qpp_with_spanning_tree_including_roots: |
   PROFILE
   MATCH (n:dbt_table_or_consumption_view)
     WHERE n.name = $name
@@ -61,24 +52,28 @@ apoc_spanning_tree: |
   //Get roots
   CALL {
     WITH n
-    MATCH (m)-[r]->*(n)
-    WITH * WHERE isEmpty(r)=false
-    WITH n, {node: m, rels: r} AS root
+    CALL apoc.path.spanningTree(n,{
+      relationshipFilter: "<"
+    }) yield path
+    WITH n, tail(nodes(path)) AS nodes, relationships(path) AS rels
+    WITH n, {root: nodes, rels: rels} AS root
     WITH n, COLLECT(root) AS roots
-    RETURN {start: n, roots: roots} AS roots
+    RETURN {start: n, roots: tail(roots)} AS roots
   }
   WITH n, roots
 
   //Get Leaves
   CALL{
     WITH n
-    MATCH (n)-[r]->*(m)
-    WITH n, r, m WHERE isEmpty(r) = false
-    WITH n, {leaf: m, rels: r} AS leaf
+    CALL apoc.path.spanningTree(n,{
+      relationshipFilter: ">"
+    }) yield path
+    WITH n, tail(nodes(path)) AS nodes, relationships(path) AS rels
+    WITH n, {leaf: nodes, rels: rels} AS leaf
     WITH n, COLLECT(leaf) AS leaves
-    RETURN {start: n, leaves: leaves} AS leaves
+    RETURN {start: n, leaves: tail(leaves)} AS leaves
   }  
-  RETURN roots, leaves
+  RETURN roots, leaves 
 
 # Full example returning everything, same as above but with Quantified Path Patterns
 qpp_query: |
@@ -130,18 +125,4 @@ qpp_query_only_nodes: |
     RETURN COLLECT(DISTINCT m) AS leaves
   }  
   RETURN n, roots, leaves
-
-# Example just streaming records in QPP format
-qpp_query_record_format: |
-  PROFILE
-  MATCH (n:dbt_table_or_consumption_view)
-    WHERE n.name = $name
-  //Get Leaves
-  CALL{
-    WITH n
-    MATCH (n)-[r]->*(m)
-    WITH * WHERE isEmpty(r) = false
-    RETURN r, m
-  }  
-  RETURN n,r,m
 
