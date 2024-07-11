@@ -27,7 +27,7 @@ qpp_with_spanning_tree: |
     WITH * WHERE isEmpty(r)=false
     WITH n, {node: m, rels: r} AS root
     WITH n, COLLECT(root) AS roots
-    RETURN {start: n, roots: roots} AS roots
+    RETURN {start: n, roots: tail(roots)} AS roots
   }
   WITH n, roots
 

@@ -27,7 +27,7 @@ CALL {
     WITH * WHERE isEmpty(r)=false
     WITH n, {node: m, rels: r} AS root
     WITH n, COLLECT(root) AS roots
-    RETURN {start: n, roots: roots} AS roots
+    RETURN {start: n, roots: tail(roots)} AS roots
   }
 WITH n, roots
 
@@ -40,7 +40,7 @@ CALL{
     WITH n, tail(nodes(path)) AS nodes, relationships(path) AS rels
     WITH n, {leaf: nodes, rels: rels} AS leaf
     WITH n, COLLECT(leaf) AS leaves
-    RETURN {start: n, leaves: leaves} AS leaves
+    RETURN {start: n, leaves: tail(leaves)} AS leaves
   }  
 RETURN roots, leaves;
 
