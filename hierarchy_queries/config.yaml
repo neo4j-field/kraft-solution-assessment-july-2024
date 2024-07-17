@@ -15,35 +15,7 @@ original_query: |
   AS leaves
   RETURN n1 + roots + leaves as data
 
-qpp_with_spanning_tree: |
-  PROFILE
-  MATCH (n:dbt_table_or_consumption_view)
-    WHERE n.name = $name
-
-  //Get roots
-  CALL {
-    WITH n
-    MATCH (m)-[r]->*(n)
-    WITH * WHERE isEmpty(r)=false
-    WITH n, {node: m, rels: r} AS root
-    WITH n, COLLECT(root) AS roots
-    RETURN {start: n, roots: tail(roots)} AS roots
-  }
-  WITH n, roots
-
-  //Get Leaves
-  CALL{
-    WITH n
-    CALL apoc.path.spanningTree(n,{
-      relationshipFilter: ">"
-    }) yield path
-    WITH n, tail(nodes(path)) AS nodes, relationships(path) AS rels
-    WITH n, {leaf: nodes, rels: rels} AS leaf
-    WITH n, COLLECT(leaf) AS leaves
-    RETURN {start: n, leaves: tail(leaves)} AS leaves
-  }  
-  RETURN roots, leaves
-
+# Example returning a similiar structure as  the original, uses apoc.path.spanningTree() for path prunning and reduce traversal explosions
 spanning_tree_only: |
   PROFILE
   MATCH (n:dbt_table_or_consumption_view)
@@ -75,7 +47,7 @@ spanning_tree_only: |
   }  
   RETURN roots, leaves 
 
-# Example just returning just the root and leaf nodes
+# Example just returning just the root and leaf nodes as a list using Quantified Path Patterns
 qpp_query_only_nodes: |
   PROFILE
   MATCH (n:dbt_table_or_consumption_view)
