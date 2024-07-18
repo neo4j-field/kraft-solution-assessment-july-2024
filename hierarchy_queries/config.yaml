@@ -70,6 +70,7 @@ qpp_query_only_nodes: |
   }  
   RETURN n, roots, leaves
 
+# Example just streaming the direct result using QPP with no collection processing that can cause eager issues
 qpp_query_stream_all: |
   cypher runtime=parallel
   PROFILE
@@ -77,5 +78,15 @@ qpp_query_stream_all: |
     WHERE n.name = $name
   MATCH (n)-[r]->*(m)
   WHERE size(r) <> 0
-  RETURN n AS startNode, m AS leaf, r AS paths 
+  RETURN n AS startNode, m AS leaf, r AS paths
+
+# Example just streaming the direct result using QPP & limiting the properties returned
+qpp_query_stream_id_paths: |
+  cypher runtime=parallel
+  PROFILE
+  MATCH (n:dbt_table_or_consumption_view)
+  WHERE n.name = $name
+  MATCH (n)-[r]->*(m)
+  WHERE size(r) <> 0
+  RETURN n.unique_id AS startNodeId, m.unique_id AS leafId, r AS paths
 
